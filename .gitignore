@@ -1,0 +1,14 @@
+node_modules/
+.env
+logs/
+*.log
+backups/
+dist/
+build/
+.vite/
+.DS_Store
+Thumbs.db
+*.local
+*.swp
+*.swo
+*~
