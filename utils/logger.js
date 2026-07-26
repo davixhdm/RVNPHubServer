@@ -1,10 +1,15 @@
 import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const logDir = path.join(__dirname, '..', 'logs');
+
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
 
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -31,18 +36,16 @@ if (process.env.NODE_ENV === 'production') {
       })
     ),
   }));
-  logger.add(new winston.transports.DailyRotateFile({
-    filename: path.join(logDir, 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
+  logger.add(new winston.transports.File({
+    filename: path.join(logDir, 'error.log'),
     level: 'error',
-    maxSize: '10m',
-    maxFiles: '30d',
+    maxsize: 10485760,
+    maxFiles: 30,
   }));
-  logger.add(new winston.transports.DailyRotateFile({
-    filename: path.join(logDir, 'combined-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    maxSize: '10m',
-    maxFiles: '14d',
+  logger.add(new winston.transports.File({
+    filename: path.join(logDir, 'combined.log'),
+    maxsize: 10485760,
+    maxFiles: 14,
   }));
 } else {
   logger.add(new winston.transports.Console({
