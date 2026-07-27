@@ -7,8 +7,8 @@ import { getFeed, getPostById, createPost, updatePost, deletePost, likePost, com
 
 const router = Router();
 
-router.get('/posts', auth(), getFeed);
-router.get('/posts/:id', auth(), validateObjectId('id'), getPostById);
+router.get('/posts', auth({ optional: true }), getFeed);
+router.get('/posts/:id', auth({ optional: true }), validateObjectId('id'), getPostById);
 router.post('/posts', auth(), uploadPostImages, sanitizeBody, createPost);
 router.patch('/posts/:id', auth(), validateObjectId('id'), sanitizeBody, updatePost);
 router.delete('/posts/:id', auth(), validateObjectId('id'), deletePost);

@@ -12,11 +12,18 @@ const searchAll = async (req, res, next) => {
     if (!q) throw new AppError('Search query required', 400, 'MISSING_QUERY');
     const regex = { $regex: q, $options: 'i' };
 
+    const userQuery = { $or: [{ firstName: regex }, { lastName: regex }] };
+    if (req.user) userQuery.isBanned = false;
+    const postQuery = { content: regex };
+    if (req.user) { postQuery.status = 'active'; postQuery.moderationStatus = { $ne: 'removed' }; }
+    const listingQuery = { title: regex };
+    if (req.user) listingQuery.status = 'active';
+
     const [users, posts, groups, listings] = await Promise.all([
-      User.find({ $or: [{ firstName: regex }, { lastName: regex }], isBanned: false }).limit(5).select('firstName lastName avatar department hdmVerified'),
-      Post.find({ content: regex, status: 'active', moderationStatus: { $ne: 'removed' } }).limit(5).populate('author', 'firstName lastName avatar'),
+      User.find(userQuery).limit(5).select('firstName lastName avatar department hdmVerified'),
+      Post.find(postQuery).limit(5).populate('author', 'firstName lastName avatar'),
       Group.find({ name: regex, isActive: true }).limit(5).select('name memberCount coverImage'),
-      Listing.find({ title: regex, status: 'active' }).limit(5).select('title price images'),
+      Listing.find(listingQuery).limit(5).select('title price images'),
     ]);
 
     return success(res, { users, posts, groups, listings }, 'Search results');
@@ -26,7 +33,8 @@ const searchAll = async (req, res, next) => {
 const searchUsers = async (req, res, next) => {
   try {
     const { q, page } = req.query;
-    const query = { isBanned: false };
+    const query = {};
+    if (req.user) query.isBanned = false;
     if (q) {
       const regex = { $regex: q, $options: 'i' };
       query.$or = [{ firstName: regex }, { lastName: regex }, { email: regex }];
@@ -44,9 +52,12 @@ const searchPosts = async (req, res, next) => {
     const { q } = req.query;
     if (!q) throw new AppError('Search query required', 400, 'MISSING_QUERY');
     const regex = { $regex: q, $options: 'i' };
-    const result = await paginate(Post, {
-      content: regex, status: 'active', moderationStatus: { $ne: 'removed' },
-    }, { page: req.query.page, limit: 20, sort: { createdAt: -1 }, populate: 'author', select: 'firstName lastName avatar' });
+    const query = { content: regex };
+    if (req.user) { query.status = 'active'; query.moderationStatus = { $ne: 'removed' }; }
+    const result = await paginate(Post, query, {
+      page: req.query.page, limit: 20, sort: { createdAt: -1 },
+      populate: 'author', select: 'firstName lastName avatar',
+    });
     return success(res, result.data, 'Posts', 200, { pagination: result.pagination });
   } catch (error) { next(error); }
 };
@@ -56,9 +67,10 @@ const searchGroups = async (req, res, next) => {
     const { q } = req.query;
     if (!q) throw new AppError('Search query required', 400, 'MISSING_QUERY');
     const regex = { $regex: q, $options: 'i' };
-    const result = await paginate(Group, {
-      name: regex, isActive: true,
-    }, { page: req.query.page, limit: 20, select: 'name description memberCount coverImage category' });
+    const result = await paginate(Group, { name: regex, isActive: true }, {
+      page: req.query.page, limit: 20,
+      select: 'name description memberCount coverImage category',
+    });
     return success(res, result.data, 'Groups', 200, { pagination: result.pagination });
   } catch (error) { next(error); }
 };
@@ -67,7 +79,8 @@ const searchMarketplace = async (req, res, next) => {
   try {
     const { q, category } = req.query;
     if (!q) throw new AppError('Search query required', 400, 'MISSING_QUERY');
-    const query = { title: { $regex: q, $options: 'i' }, status: 'active' };
+    const query = { title: { $regex: q, $options: 'i' } };
+    if (req.user) query.status = 'active';
     if (category && category !== 'all') query.category = category;
     const result = await paginate(Listing, query, {
       page: req.query.page, limit: 20, sort: { createdAt: -1 },

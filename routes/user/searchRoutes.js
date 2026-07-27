@@ -4,10 +4,10 @@ import { searchAll, searchUsers, searchPosts, searchGroups, searchMarketplace } 
 
 const router = Router();
 
-router.get('/search', auth(), searchAll);
-router.get('/search/users', auth(), searchUsers);
-router.get('/search/posts', auth(), searchPosts);
-router.get('/search/groups', auth(), searchGroups);
-router.get('/search/market', auth(), searchMarketplace);
+router.get('/search', auth({ optional: true }), searchAll);
+router.get('/search/users', auth({ optional: true }), searchUsers);
+router.get('/search/posts', auth({ optional: true }), searchPosts);
+router.get('/search/groups', auth({ optional: true }), searchGroups);
+router.get('/search/market', auth({ optional: true }), searchMarketplace);
 
 export default router;

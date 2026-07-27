@@ -19,24 +19,39 @@ const getFeed = async (req, res, next) => {
     if (!settings?.toggles?.posts) throw new AppError('Posts are currently disabled', 403, 'POSTS_DISABLED');
     const tab = req.query.tab || 'all';
     const page = parseInt(req.query.page) || 1;
-    const result = await feedService.getUserFeed(req.user._id, tab, page, req.user);
-    return success(res, result.data, 'Feed', 200, { pagination: result.pagination });
-  } catch (error) {
-    next(error);
-  }
+
+    // If logged in, use smart feed
+    if (req.user) {
+      const result = await feedService.getUserFeed(req.user._id, tab, page, req.user);
+      return success(res, result.data, 'Feed', 200, { pagination: result.pagination });
+    }
+
+    // Public feed — only active, approved posts
+    const query = { status: 'active', moderationStatus: 'approved' };
+    if (tab === 'urgent') query.isUrgent = true;
+    if (tab === 'dept' || tab === 'sports' || tab === 'projects' || tab === 'qna' || tab === 'trade') {
+      query.category = tab;
+    }
+
+    const result = await paginate(Post, query, {
+      page, limit: 20, sort: { isUrgent: -1, createdAt: -1 },
+      populate: 'author', select: 'firstName lastName avatar hdmVerified department',
+    });
+    return success(res, result.data, 'Public feed', 200, { pagination: result.pagination });
+  } catch (error) { next(error); }
 };
 
 // GET /api/posts/:id
 const getPostById = async (req, res, next) => {
   try {
-    const post = await Post.findById(req.params.id)
+    const query = { _id: req.params.id };
+    if (!req.user) { query.status = 'active'; query.moderationStatus = 'approved'; }
+    const post = await Post.findOne(query)
       .populate('author', 'firstName lastName avatar hdmVerified department')
       .populate('comments.author', 'firstName lastName avatar');
     if (!post) throw new AppError('Post not found', 404, 'POST_NOT_FOUND');
     return success(res, post, 'Post detail');
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 };
 
 // POST /api/posts

@@ -22,7 +22,18 @@ const followUser = async (req, res, next) => {
     target.followers.push(req.user._id);
     await Promise.all([me.save(), target.save()]);
 
-    socketService.emitToUser(target._id, 'user:newFollower', { userId: req.user._id, firstName: req.user.firstName, lastName: req.user.lastName });
+    // Save notification to database
+    const Notification = (await import('../../models/user/Notification.js')).default;
+    await Notification.create({
+      recipient: target._id,
+      type: 'follow',
+      title: `${req.user.firstName} started following you`,
+      body: `${req.user.firstName} ${req.user.lastName} is now following you`,
+      data: { userId: req.user._id },
+      channels: ['in-app', 'push'],
+    });
+
+    socketService.emitToUser(target._id, 'notification:new', { type: 'follow', user: req.user.firstName });
     await pushService.sendToUser(target._id, { title: 'New Follower', body: `${req.user.firstName} started following you`, data: { type: 'follow' } });
 
     return success(res, { followingCount: me.following.length, followersCount: target.followers.length }, 'Followed');
