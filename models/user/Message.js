@@ -4,15 +4,12 @@ const messageSchema = new mongoose.Schema({
   chat: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat', required: true },
   sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   content: { type: String, maxlength: 2000, default: '' },
-  type: { type: String, enum: ['text', 'image', 'poll', 'file', 'call'], default: 'text' },
+  type: { type: String, enum: ['text', 'image', 'poll', 'file', 'call', 'ai'], default: 'text' },
   fileUrl: { type: String, default: null },
   fileName: { type: String, default: null },
   poll: {
     question: { type: String },
-    options: [{
-      text: { type: String },
-      votes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    }],
+    options: [{ text: { type: String }, votes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] }],
   },
   callData: {
     type: { type: String, enum: ['audio', 'video'] },

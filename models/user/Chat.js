@@ -6,10 +6,11 @@ const chatSchema = new mongoose.Schema({
   groupName: { type: String, default: null },
   groupAvatar: { type: String, default: null },
   isPinned: { type: Boolean, default: false },
+  isAI: { type: Boolean, default: false },
   lastMessage: {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     content: { type: String },
-    type: { type: String, enum: ['text', 'image', 'poll', 'file', 'call'] },
+    type: { type: String, enum: ['text', 'image', 'poll', 'file', 'call', 'ai'] },
     createdAt: { type: Date },
   },
   unreadCount: { type: Object, default: {} },
