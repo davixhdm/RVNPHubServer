@@ -14,10 +14,8 @@ const getChats = async (req, res, next) => {
     const settings = await getSettings();
     if (!settings?.toggles?.chat) throw new AppError('Chat is currently disabled', 403, 'CHAT_DISABLED');
     const chats = await Chat.find({
-      $or: [
-        { participants: req.user._id, isActive: true },
-        { participants: req.user._id, isAI: true },
-      ],
+      participants: req.user._id,
+      isActive: true,
     }).sort({ updatedAt: -1 }).populate('participants', 'firstName lastName avatar hdmVerified isOnline');
     return success(res, chats, 'Chats');
   } catch (error) { next(error); }
@@ -143,13 +141,19 @@ const uploadChatFile = async (req, res, next) => {
 const aiChat = async (req, res, next) => {
   try {
     const settings = await getSettings();
-    if (!settings?.ai?.aiEnabled || !settings?.ai?.chatEnabled) throw new AppError('AI Chat is currently disabled', 403, 'AI_DISABLED');
+    if (!settings?.ai?.aiEnabled || !settings?.ai?.chatEnabled)
+      throw new AppError('AI Chat is currently disabled', 403, 'AI_DISABLED');
     const { message } = req.body;
     if (!message) throw new AppError('Message is required', 400, 'MISSING_MESSAGE');
 
-    let chat = await Chat.findOne({ participants: req.user._id, isAI: true });
+    let chat = await Chat.findOne({ participants: req.user._id, isAI: true, isActive: true });
     if (!chat) {
-      chat = await Chat.create({ type: 'direct', participants: [req.user._id], agoraChannel: `rvnp_ai_${req.user._id}`, isAI: true });
+      chat = await Chat.create({
+        type: 'direct',
+        participants: [req.user._id],
+        agoraChannel: `rvnp_ai_${req.user._id}`,
+        isAI: true,
+      });
     }
 
     await Message.create({ chat: chat._id, sender: req.user._id, content: message, type: 'text', readBy: [req.user._id] });
