@@ -16,8 +16,8 @@ import friendRoutes from './friendRoutes.js';
 import settingsRoutes from './settingsRoutes.js';
 import privacyRoutes from './privacyRoutes.js';
 import supportRoutes from './supportRoutes.js';
-
-
+import reactionRoutes from './reactionRoutes.js';
+import commentRoutes from './commentRoutes.js';
 
 const router = Router();
 
@@ -38,5 +38,8 @@ router.use(friendRoutes);
 router.use(settingsRoutes);
 router.use(privacyRoutes);
 router.use(supportRoutes);
+router.use(reactionRoutes);
+router.use(commentRoutes);
+
 
 export default router;
