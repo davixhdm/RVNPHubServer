@@ -23,20 +23,38 @@ const getFeed = async (req, res, next) => {
     const tab = req.query.tab || 'all';
     const page = parseInt(req.query.page) || 1;
 
+    // Logged in — use smart feed
     if (req.user) {
       const result = await feedService.getUserFeed(req.user._id, tab, page, req.user);
       return success(res, result.data, 'Feed', 200, { pagination: result.pagination });
     }
 
+    // Public feed — return all post fields
     const query = { status: 'active', moderationStatus: 'approved' };
     if (tab === 'urgent') query.isUrgent = true;
     if (['dept', 'sports', 'projects', 'qna', 'trade'].includes(tab)) query.category = tab;
 
-    const result = await paginate(Post, query, {
-      page, limit: 20, sort: { isUrgent: -1, createdAt: -1 },
-      populate: 'author', select: 'firstName lastName avatar hdmVerified department',
+    const skip = (page - 1) * 20;
+    const [posts, total] = await Promise.all([
+      Post.find(query)
+        .sort({ isUrgent: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(20)
+        .populate('author', 'firstName lastName avatar hdmVerified department')
+        .lean(),
+      Post.countDocuments(query),
+    ]);
+
+    return success(res, posts, 'Public feed', 200, {
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / 20),
+        totalItems: total,
+        hasNext: skip + 20 < total,
+        hasPrev: page > 1,
+        limit: 20,
+      },
     });
-    return success(res, result.data, 'Public feed', 200, { pagination: result.pagination });
   } catch (error) { next(error); }
 };
 
